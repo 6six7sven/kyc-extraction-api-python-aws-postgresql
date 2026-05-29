@@ -4,6 +4,7 @@ import boto3
 from urllib.parse import urlparse
 import easyocr
 import cv2
+import numpy as np
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 from fuzzywuzzy import fuzz
@@ -62,10 +63,12 @@ def process_image(
                 if match_score < fuzzy_threshold:
                     continue
 
-            # Draw bounding box on the image (green rectangle, 2px thickness)
-            top_left = (int(bbox[0][0]), int(bbox[0][1]))
-            bottom_right = (int(bbox[2][0]), int(bbox[2][1]))
-            cv2.rectangle(image, top_left, bottom_right, (0, 255, 0), 2)
+            # Dynamically calculate line thickness based on image resolution (min 3px)
+            thickness = max(3, int(image.shape[0] * 0.003))
+            
+            # Draw exact bounding polygon (handles skewed/rotated text better than rectangle)
+            pts = np.array(bbox, np.int32).reshape((-1, 1, 2))
+            cv2.polylines(image, [pts], True, (0, 255, 0), thickness=thickness)
             
             extracted_data.append({
                 "bounding_box": [[int(coord[0]), int(coord[1])] for coord in bbox],

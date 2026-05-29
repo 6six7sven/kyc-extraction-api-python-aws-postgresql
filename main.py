@@ -35,6 +35,10 @@ async def upload_image(
     """
     logger.info(f"Received upload request for file: {file.filename}")
     try:
+        # Swagger UI and JS clients often send the string "null" or "" for empty optional fields
+        if search_text is not None and search_text.strip().lower() in ["null", "none", "undefined", ""]:
+            search_text = None
+
         # Validate file is an image
         validate_image_file(file)
         
