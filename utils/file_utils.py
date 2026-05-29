@@ -1,6 +1,7 @@
 import os
 import uuid
 import boto3
+import json
 from dotenv import load_dotenv
 from fastapi import UploadFile, HTTPException
 from typing import Tuple
@@ -48,3 +49,18 @@ def get_s3_presigned_url(filename: str, expiration: int = 3600) -> str:
         Params={'Bucket': S3_BUCKET_NAME, 'Key': filename},
         ExpiresIn=expiration
     )
+
+def save_json_to_s3(data: dict, original_s3_uri: str) -> str:
+    """Saves dictionary data as a JSON file in S3."""
+    filename = original_s3_uri.split('/')[-1]
+    base_name = os.path.splitext(filename)[0]
+    json_filename = f"{base_name}_kyc.json"
+    
+    s3_client.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=json_filename,
+        Body=json.dumps(data, indent=4),
+        ContentType='application/json'
+    )
+    
+    return f"s3://{S3_BUCKET_NAME}/{json_filename}"
