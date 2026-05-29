@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from services.ocr_service import process_image
+from services.ocr_service import process_id_document
 
 # Initialize Celery
 # Broker: Redis is used to pass messages between FastAPI and Celery
@@ -16,17 +16,13 @@ celery_app = Celery(
     backend="redis://localhost:6379/0"
 )
 
-@celery_app.task(name="process_image_task")
-def process_image_task(file_path_str: str, search_text: Optional[str] = None, min_confidence: float = 0.0, fuzzy_threshold: int = 80):
-    """Background task to run OCR on an image."""
+@celery_app.task(name="process_id_task")
+def process_id_task(file_path_str: str):
+    """Background task to run KYC extraction on an ID document."""
     
-    # Run the heavy OCR extraction
-    extracted_data, annotated_filename = process_image(
-        file_path_str, search_text, min_confidence, fuzzy_threshold
-    )
+    # Run the Textract AI extraction
+    extracted_data = process_id_document(file_path_str)
     
-    # Return purely JSON serializable data
     return {
-        "extracted_data": extracted_data,
-        "annotated_image_url": f"/uploads/{annotated_filename}"
+        "kyc_data": extracted_data
     }
