@@ -10,7 +10,8 @@ load_dotenv()
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 
 # Initialize S3 client (AWS credentials read from environment variables)
-s3_client = boto3.client('s3')
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+s3_client = boto3.client('s3', region_name=AWS_REGION)
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "my-ocr-bucket")
 
 def validate_image_file(file: UploadFile) -> None:

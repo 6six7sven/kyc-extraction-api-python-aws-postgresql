@@ -1,8 +1,10 @@
+import os
 import boto3
 from urllib.parse import urlparse
 
 # Initialize AWS clients
-textract_client = boto3.client('textract')
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+textract_client = boto3.client('textract', region_name=AWS_REGION)
 
 def process_id_document(file_uri: str) -> dict:
     """
