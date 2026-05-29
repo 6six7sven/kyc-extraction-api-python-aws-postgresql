@@ -1,8 +1,11 @@
 import os
 import uuid
 import boto3
+from dotenv import load_dotenv
 from fastapi import UploadFile, HTTPException
 from typing import Tuple
+
+load_dotenv()
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 
