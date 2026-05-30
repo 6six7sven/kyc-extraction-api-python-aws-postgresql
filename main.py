@@ -4,10 +4,12 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from celery.result import AsyncResult
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordRequestForm
 
 from utils.file_utils import validate_image_file, save_upload_with_uuid, get_s3_presigned_url
 from utils.logger import setup_logger
 from worker import process_id_task, celery_app
+from utils.auth import create_access_token, get_current_user
 
 from db.database import engine, get_db, Base
 from db.models import KYCTask
@@ -25,11 +27,27 @@ class TaskResponse(BaseModel):
     task_id: str
 
 
+@app.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Simple endpoint to authenticate and issue a JWT token."""
+    # Hardcoded dummy credentials for simplicity (use a database in production!)
+    if form_data.username != "admin" or form_data.password != "secret":
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = create_access_token(data={"sub": form_data.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 @app.post("/kyc/upload-id", response_model=TaskResponse, status_code=202)
 async def upload_id_document(
     user_id: str = Form(..., description="The unique ID of the user uploading the document"),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Upload a government-issued ID (Passport, Driver's License) for KYC extraction.
@@ -81,7 +99,7 @@ async def upload_id_document(
 
 
 @app.get("/tasks/{task_id}")
-async def get_task_status(task_id: str, db: Session = Depends(get_db)):
+async def get_task_status(task_id: str, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """Check the status and results of a background KYC task from PostgreSQL"""
     task_record = db.query(KYCTask).filter(KYCTask.task_id == task_id).first()
     
