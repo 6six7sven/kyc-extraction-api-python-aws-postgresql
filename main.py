@@ -9,10 +9,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from utils.file_utils import validate_image_file, save_upload_with_uuid, get_s3_presigned_url
 from utils.logger import setup_logger
 from worker import process_id_task, celery_app
-from utils.auth import create_access_token, get_current_user
+from utils.auth import create_access_token, get_current_user, verify_password, get_password_hash
 
 from db.database import engine, get_db, Base
-from db.models import KYCTask
+from db.models import KYCTask, User
 
 # Create PostgreSQL tables automatically on startup
 Base.metadata.create_all(bind=engine)
@@ -26,25 +26,43 @@ class TaskResponse(BaseModel):
     message: str
     task_id: str
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/register", status_code=201)
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user in the database."""
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_password = get_password_hash(user.password)
+    new_user = User(username=user.username, hashed_password=hashed_password)
+    db.add(new_user)
+    db.commit()
+    return {"message": "User created successfully"}
+
 
 @app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Simple endpoint to authenticate and issue a JWT token."""
-    # Hardcoded dummy credentials for simplicity (use a database in production!)
-    if form_data.username != "admin" or form_data.password != "secret":
+    user = db.query(User).filter(User.username == form_data.username).first()
+    
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = create_access_token(data={"sub": form_data.username})
+    access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.post("/kyc/upload-id", response_model=TaskResponse, status_code=202)
 async def upload_id_document(
-    user_id: str = Form(..., description="The unique ID of the user uploading the document"),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user)
@@ -53,7 +71,6 @@ async def upload_id_document(
     Upload a government-issued ID (Passport, Driver's License) for KYC extraction.
     
     Args:
-        user_id: Unique identifier for the user
         file: Image file to upload (JPEG, PNG, WebP)
         
     Returns:
@@ -74,7 +91,7 @@ async def upload_id_document(
         # Save the initial task record to PostgreSQL
         db_task = KYCTask(
             task_id=task.id,
-            user_id=user_id,
+            user_id=current_user,
             status="PENDING"
         )
         db.add(db_task)
@@ -101,7 +118,7 @@ async def upload_id_document(
 @app.get("/tasks/{task_id}")
 async def get_task_status(task_id: str, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
     """Check the status and results of a background KYC task from PostgreSQL"""
-    task_record = db.query(KYCTask).filter(KYCTask.task_id == task_id).first()
+    task_record = db.query(KYCTask).filter(KYCTask.task_id == task_id, KYCTask.user_id == current_user).first()
     
     if not task_record:
         return JSONResponse(status_code=404, content={"error": "Task not found"})

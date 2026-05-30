@@ -4,8 +4,11 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
+from passlib.context import CryptContext
 
 load_dotenv()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # In a real app, never hardcode this. Keep it in your .env file!
 SECRET_KEY = os.getenv("SECRET_KEY", "my-super-secret-jwt-key")
@@ -14,6 +17,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # This tells FastAPI where the login endpoint is for Swagger UI
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
