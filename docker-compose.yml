@@ -10,9 +10,6 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      # This overrides your .env to use the local DB container. 
-      # Remove this line if you want to use your AWS RDS database instead!
-      - DATABASE_URL=postgresql://postgres:password@db:5432/kyc_db
     depends_on:
       - redis
       - db
@@ -25,7 +22,6 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://postgres:password@db:5432/kyc_db
     depends_on:
       - redis
       - db
