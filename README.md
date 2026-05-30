@@ -26,13 +26,10 @@ AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your_s3_bucket_name
+SECRET_KEY=your_jwt_secret_key
 
 # Database Connection (Local or AWS RDS)
-DATABASE_URL=postgresql://postgres:password@localhost:5432/kyc_db
-```bash
-pip install -r requirements.txt
-pip install easyocr
-pip install opencv-python
+DATABASE_URL=postgresql://postgres:password@db:5432/kyc_db
 ```
 
 2. Run the server:
