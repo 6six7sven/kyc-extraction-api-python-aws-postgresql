@@ -1,12 +1,19 @@
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse, RedirectResponse
 from celery.result import AsyncResult
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from utils.file_utils import validate_image_file, save_upload_with_uuid, get_s3_presigned_url
 from utils.logger import setup_logger
 from worker import process_id_task, celery_app
+
+from db.database import engine, get_db, Base
+from db.models import KYCTask
+
+# Create PostgreSQL tables automatically on startup
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 logger = setup_logger(__name__)
@@ -19,11 +26,16 @@ class TaskResponse(BaseModel):
 
 
 @app.post("/kyc/upload-id", response_model=TaskResponse, status_code=202)
-async def upload_id_document(file: UploadFile = File(...)):
+async def upload_id_document(
+    user_id: str = Form(..., description="The unique ID of the user uploading the document"),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
     """
     Upload a government-issued ID (Passport, Driver's License) for KYC extraction.
     
     Args:
+        user_id: Unique identifier for the user
         file: Image file to upload (JPEG, PNG, WebP)
         
     Returns:
@@ -40,6 +52,15 @@ async def upload_id_document(file: UploadFile = File(...)):
         
         # Dispatch the KYC processing to a background Celery worker
         task = process_id_task.delay(str(file_path))
+        
+        # Save the initial task record to PostgreSQL
+        db_task = KYCTask(
+            task_id=task.id,
+            user_id=user_id,
+            status="PENDING"
+        )
+        db.add(db_task)
+        db.commit()
         
         logger.info(f"Dispatched background task {task.id} for image {unique_filename}.")
 
@@ -60,19 +81,20 @@ async def upload_id_document(file: UploadFile = File(...)):
 
 
 @app.get("/tasks/{task_id}")
-async def get_task_status(task_id: str):
-    """Check the status of a background OCR task"""
-    task_result = AsyncResult(task_id, app=celery_app)
+async def get_task_status(task_id: str, db: Session = Depends(get_db)):
+    """Check the status and results of a background KYC task from PostgreSQL"""
+    task_record = db.query(KYCTask).filter(KYCTask.task_id == task_id).first()
     
-    if task_result.state == 'PENDING':
-        return JSONResponse(content={"status": "PENDING"})
-    elif task_result.state == 'SUCCESS':
-        return JSONResponse(content={"status": "SUCCESS", "result": task_result.result})
-    elif task_result.state == 'FAILURE':
-        logger.error(f"Task {task_id} failed: {task_result.info}")
-        return JSONResponse(content={"status": "FAILURE", "error": str(task_result.info)}, status_code=500)
-    else:
-        return JSONResponse(content={"status": task_result.state})
+    if not task_record:
+        return JSONResponse(status_code=404, content={"error": "Task not found"})
+        
+    return {
+        "task_id": task_record.task_id,
+        "user_id": task_record.user_id,
+        "status": task_record.status,
+        "upload_timestamp": task_record.upload_timestamp.isoformat(),
+        "extracted_fields": task_record.extracted_fields
+    }
 
 
 @app.get("/uploads/{filename}")
