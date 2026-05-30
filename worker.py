@@ -1,3 +1,4 @@
+import os
 from celery import Celery
 from pathlib import Path
 from typing import Optional
@@ -14,10 +15,12 @@ from db.models import KYCTask
 # Initialize Celery
 # Broker: Redis is used to pass messages between FastAPI and Celery
 # Backend: Redis is used to store the results of the completed tasks
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
 celery_app = Celery(
     "ocr_worker",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0"
+    broker=REDIS_URL,
+    backend=REDIS_URL
 )
 
 @celery_app.task(name="process_id_task", bind=True)

@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: kyc_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      # This overrides your .env to use the local DB container. 
+      # Remove this line if you want to use your AWS RDS database instead!
+      - DATABASE_URL=postgresql://postgres:password@db:5432/kyc_db
+    depends_on:
+      - redis
+      - db
+
+  worker:
+    build: .
+    container_name: kyc_worker
+    command: celery -A worker.celery_app worker --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:password@db:5432/kyc_db
+    depends_on:
+      - redis
+      - db
+
+  redis:
+    image: redis:7-alpine
+    container_name: kyc_redis
+    ports:
+      - "6380:6379"
+
+  db:
+    image: postgres:15-alpine
+    container_name: kyc_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=kyc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
