@@ -132,6 +132,27 @@ async def get_task_status(task_id: str, db: Session = Depends(get_db), current_u
     }
 
 
+@app.get("/kyc/users/{user_id}/tasks")
+async def get_user_tasks(user_id: str, db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """Retrieve a history of all past KYC tasks and their extracted data for a specific user."""
+    if user_id != current_user:
+        raise HTTPException(status_code=403, detail="You can only view your own task history.")
+        
+    tasks = db.query(KYCTask).filter(KYCTask.user_id == user_id).order_by(KYCTask.upload_timestamp.desc()).all()
+    
+    return {
+        "user_id": user_id,
+        "tasks": [
+            {
+                "task_id": task.task_id,
+                "status": task.status,
+                "upload_timestamp": task.upload_timestamp.isoformat(),
+                "extracted_fields": task.extracted_fields
+            }
+            for task in tasks
+        ]
+    }
+
 @app.get("/uploads/{filename}")
 async def get_uploaded_file(filename: str):
     """Redirect to an S3 presigned URL for the requested file"""

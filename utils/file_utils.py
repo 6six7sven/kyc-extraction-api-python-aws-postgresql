@@ -9,6 +9,8 @@ from typing import Tuple
 load_dotenv()
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+MAX_FILE_SIZE_MB = 5
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # Initialize S3 client (AWS credentials read from environment variables)
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
@@ -16,11 +18,17 @@ s3_client = boto3.client('s3', region_name=AWS_REGION)
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "my-ocr-bucket")
 
 def validate_image_file(file: UploadFile) -> None:
-    """Validates that the uploaded file is a supported image type."""
+    """Validates that the uploaded file is a supported image type and within size limits."""
     if not file.content_type or file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=400, 
             detail="Invalid file type. Only JPEG, PNG, and WebP images are allowed."
+        )
+        
+    if file.size is not None and file.size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE_MB}MB."
         )
 
 async def save_upload_with_uuid(file: UploadFile) -> Tuple[str, str]:
