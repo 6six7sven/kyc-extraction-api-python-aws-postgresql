@@ -33,7 +33,7 @@ jobs:
     name: Deploy to Server
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     
     steps:
       - name: Execute SSH deployment script
@@ -45,6 +45,6 @@ jobs:
           script: |
             # Replace this path with the actual path to your project on the server
             cd /home/ubuntu/learningAPI
-            git pull origin main
+            git pull origin ${{ github.ref_name }}
             docker-compose down
             docker-compose up -d --build
