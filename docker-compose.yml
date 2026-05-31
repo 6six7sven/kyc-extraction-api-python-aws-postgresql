@@ -36,9 +36,9 @@ services:
     image: postgres:15-alpine
     container_name: kyc_db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=kyc_db
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_NAME:-kyc_db}
     ports:
       - "5432:5432"
     volumes:

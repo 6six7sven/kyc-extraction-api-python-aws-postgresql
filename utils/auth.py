@@ -9,7 +9,6 @@ from config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# In a real app, never hardcode this. Keep it in your .env file!
 SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30

@@ -207,7 +207,7 @@ Logs are output to stdout with timestamps and log levels. Configure logging leve
 
 ## Security Notes
 
-- **Authentication**: Currently uses hardcoded credentials (`admin/secret`) for development. Implement database-backed user authentication for production.
+- **Authentication**: Uses securely hashed (bcrypt) database-backed user authentication.
 - **Environment Variables**: Store sensitive credentials in `.env` files (never commit to version control).
 - **S3 Permissions**: Restrict S3 bucket access using IAM policies.
 - **JWT Secret**: Use a strong, random secret key for JWT signing.
