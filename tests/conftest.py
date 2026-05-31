@@ -1,3 +1,7 @@
+import os
+# Set a dummy database before importing main.py so it doesn't attempt to connect to PostgreSQL!
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
