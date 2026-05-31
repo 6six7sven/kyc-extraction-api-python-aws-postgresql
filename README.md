@@ -225,3 +225,5 @@ If you are deploying this API for your own project, you will need to configure t
 2. **IAM User**: Create an IAM User with Programmatic Access (Access Key & Secret Key).
 3. **IAM Permissions**: Attach the `AmazonS3FullAccess` and `AmazonTextractFullAccess` policies to your IAM user.
 4. Add the IAM credentials and Bucket name to your `.env` file.
+
+.
