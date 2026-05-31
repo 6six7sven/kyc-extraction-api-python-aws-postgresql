@@ -1,56 +1,37 @@
-import easyocr
-import cv2
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
-from fuzzywuzzy import fuzz
+import os
+import boto3
+from urllib.parse import urlparse
 
-# Initialize EasyOCR reader for English (loads models into memory)
-reader = easyocr.Reader(['en'])
+# Initialize AWS clients
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+textract_client = boto3.client('textract', region_name=AWS_REGION)
 
-def process_image(
-    file_path: Path, 
-    search_text: Optional[str] = None,
-    min_confidence: float = 0.0,
-    fuzzy_threshold: int = 80
-) -> Tuple[List[Dict[str, Any]], Path]:
+def process_id_document(file_uri: str) -> dict:
     """
-    Extract text from an image, filter by search_text, and draw bounding boxes.
-    Returns the extracted data and the path to the annotated image.
+    Instructs AWS Textract to analyze an ID document directly from S3.
+    Returns a structured dictionary of the extracted Key-Value pairs.
     """
-    # Extract text using EasyOCR
-    ocr_results = reader.readtext(str(file_path))
+    # Parse S3 URI
+    parsed_uri = urlparse(file_uri)
+    bucket = parsed_uri.netloc
+    key = parsed_uri.path.lstrip('/')
     
-    # Read the image with OpenCV to draw bounding boxes
-    image = cv2.imread(str(file_path))
-    if image is None:
-        raise ValueError("Failed to load image file. It might be corrupted or unsupported.")
-        
-    extracted_data = []
-    for bbox, text, conf in ocr_results:
-        # Filter out text read below the minimum confidence threshold
-        if conf < min_confidence:
-            continue
-
-        # If search_text is provided, use fuzzy string matching 
-        if search_text:
-            match_score = fuzz.partial_ratio(search_text.lower(), text.lower())
-            if match_score < fuzzy_threshold:
-                continue
-
-        # Draw bounding box on the image (green rectangle, 2px thickness)
-        top_left = (int(bbox[0][0]), int(bbox[0][1]))
-        bottom_right = (int(bbox[2][0]), int(bbox[2][1]))
-        cv2.rectangle(image, top_left, bottom_right, (0, 255, 0), 2)
-        
-        extracted_data.append({
-            "bounding_box": [[int(coord[0]), int(coord[1])] for coord in bbox],
-            "text": text,
-            "confidence": float(conf)
-        })
-
-    # Save the annotated image
-    annotated_filename = f"annotated_{file_path.name}"
-    annotated_file_path = file_path.parent / annotated_filename
-    cv2.imwrite(str(annotated_file_path), image)
-
-    return extracted_data, annotated_file_path
+    # Call AWS Textract AnalyzeID
+    response = textract_client.analyze_id(
+        DocumentPages=[{'S3Object': {'Bucket': bucket, 'Name': key}}]
+    )
+    
+    # Parse the Textract response into a clean dictionary
+    extracted_data = {}
+    for doc_fields in response.get('IdentityDocuments', []):
+        for field in doc_fields.get('IdentityDocumentFields', []):
+            field_type = field.get('Type', {}).get('Text', 'UNKNOWN')
+            field_value = field.get('ValueDetection', {}).get('Text', '')
+            confidence = field.get('ValueDetection', {}).get('Confidence', 0.0)
+            
+            extracted_data[field_type] = {
+                "value": field_value,
+                "confidence": float(confidence)
+            }
+            
+    return extracted_data
