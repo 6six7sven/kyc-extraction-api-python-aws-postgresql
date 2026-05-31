@@ -44,7 +44,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             # Replace this path with the actual path to your project on the server
-            cd /home/ubuntu/learningAPI
+            cd /home/ubuntu/kyc-extraction-api-python-aws-postgresql
             git pull origin ${{ github.ref_name }}
             docker-compose down
             docker-compose up -d --build
