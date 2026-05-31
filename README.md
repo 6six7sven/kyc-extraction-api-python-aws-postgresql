@@ -70,14 +70,11 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
    ```
 
 4. **Configure environment variables**
-   Create a `.env` file in the project root:
-   ```env
-   AWS_REGION=us-east-1
-   S3_BUCKET_NAME=your-ocr-bucket
-   DATABASE_URL=postgresql://user:password@localhost/kyc_db
-   REDIS_URL=redis://localhost:6379/0
-   SECRET_KEY=your-secret-key
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
    ```
+   Open the `.env` file and configure it with your own AWS credentials, PostgreSQL URL, and JWT secret.
 
 5. **Initialize the database**
    ```bash
@@ -221,3 +218,10 @@ Logs are output to stdout with timestamps and log levels. Configure logging leve
 - **Celery Tasks Not Processing**: Ensure Redis is running and Celery worker is active
 - **Database Connection Error**: Verify PostgreSQL connection string and that the database exists
 - **Textract Errors**: Ensure the image is clear and readable; check AWS Textract quotas
+
+## AWS Setup for Self-Hosting
+If you are deploying this API for your own project, you will need to configure the following in your AWS account:
+1. **S3 Bucket**: Create a private S3 bucket to store uploaded ID images and extracted JSON data.
+2. **IAM User**: Create an IAM User with Programmatic Access (Access Key & Secret Key).
+3. **IAM Permissions**: Attach the `AmazonS3FullAccess` and `AmazonTextractFullAccess` policies to your IAM user.
+4. Add the IAM credentials and Bucket name to your `.env` file.
