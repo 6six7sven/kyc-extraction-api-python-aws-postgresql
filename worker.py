@@ -2,9 +2,8 @@ import os
 from celery import Celery
 from pathlib import Path
 from typing import Optional
-from dotenv import load_dotenv
 
-load_dotenv()
+from config import settings
 
 from services.ocr_service import process_id_document
 from utils.file_utils import save_json_to_s3
@@ -15,7 +14,7 @@ from db.models import KYCTask
 # Initialize Celery
 # Broker: Redis is used to pass messages between FastAPI and Celery
 # Backend: Redis is used to store the results of the completed tasks
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = settings.redis_url
 
 celery_app = Celery(
     "ocr_worker",
@@ -42,12 +41,14 @@ def process_id_task(self, file_path_str: str):
         
     # Update PostgreSQL Database
     db = SessionLocal()
-    task_record = db.query(KYCTask).filter(KYCTask.task_id == task_id).first()
-    if task_record:
-        task_record.status = status
-        task_record.extracted_fields = extracted_data
-        db.commit()
-    db.close()
+    try:
+        task_record = db.query(KYCTask).filter(KYCTask.task_id == task_id).first()
+        if task_record:
+            task_record.status = status
+            task_record.extracted_fields = extracted_data
+            db.commit()
+    finally:
+        db.close()
     
     return {
         "kyc_data": extracted_data,

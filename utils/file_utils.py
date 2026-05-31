@@ -2,20 +2,19 @@ import os
 import uuid
 import boto3
 import json
-from dotenv import load_dotenv
 from fastapi import UploadFile, HTTPException
 from typing import Tuple
 
-load_dotenv()
+from config import settings
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 MAX_FILE_SIZE_MB = 5
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # Initialize S3 client (AWS credentials read from environment variables)
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+AWS_REGION = settings.aws_region
 s3_client = boto3.client('s3', region_name=AWS_REGION)
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "my-ocr-bucket")
+S3_BUCKET_NAME = settings.s3_bucket_name
 
 def validate_image_file(file: UploadFile) -> None:
     """Validates that the uploaded file is a supported image type and within size limits."""
