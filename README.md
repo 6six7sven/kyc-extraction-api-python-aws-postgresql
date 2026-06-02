@@ -40,9 +40,13 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
 ```
 ## Architecture Overview
 - **Architecture Diagram**
+
 ![Kyc-API Architecture](arch-images\kyc-arch.png)
+
 - **Data Flow Diagram**
+
 ![Kyc-API DFD](arch-images\kyc-dfd.jpg)
+
 
 ## Engineering Decisions
 
