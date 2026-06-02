@@ -38,6 +38,43 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
 │   └── models.py             # SQLAlchemy models
 └── uploads/                   # Local upload directory (for development)
 ```
+## Architecture Overview
+- **Architecture Diagram**
+![Kyc-API Architecture](arch-images\kyc-arch.png)
+- **Data Flow Diagram**
+![Kyc-API DFD](arch-images\kyc-dfd.jpg)
+
+## Engineering Decisions
+
+**Why FastAPI?**
+- FastAPI is built from the ground up to support asynchronous programming (`async`/`await`), which is critical for I/O-bound operations like uploading images to S3 or querying databases. It also provides automatic validation via Pydantic and generates interactive OpenAPI documentation (`/docs`) out of the box, drastically speeding up development and frontend integration.
+- **Alternatives:** 
+  - *Flask:* Synchronous by default and requires third-party plugins for OpenAPI docs and validation.
+  - *Django:* Too heavyweight for a microservice focused purely on providing a REST API.
+
+**Why Celery?**
+- AWS Textract processing can take several seconds to complete. If we process the image synchronously, the HTTP request would hang and potentially timeout, creating a poor user experience. Celery allows us to immediately return a `202 Accepted` response with a `task_id`, offloading the heavy OCR processing to background worker nodes.
+- **Alternatives Considered:**
+  - *RQ (Redis Queue):* Simpler to set up, but less robust than Celery for scaling and complex workflows.
+  - *FastAPI BackgroundTasks:* Runs in the same process as the API, meaning a high volume of heavy tasks could crash the API server.
+
+**Why Redis?**
+- Celery requires a message broker to pass task messages from the FastAPI web server to the background workers, and a result backend to store the immediate state of those tasks. Redis handles both roles incredibly fast because it is entirely in-memory.
+- **Alternatives:**
+  - *RabbitMQ:* Excellent for complex message routing, but requires more overhead and setup than Redis.
+  - *Amazon SQS:* A great serverless alternative, but introduces cloud vendor lock-in for the message broker and can be slower than in-memory Redis.
+
+**Why PostgreSQL?**
+- We need relational integrity to tie Users to their specific KYC Tasks (a 1-to-many relationship). PostgreSQL handles concurrent connections beautifully in production and offers native `JSONB` column types, which is perfect for storing the highly variable, nested JSON structures returned by AWS Textract.
+- **Alternatives:**
+  - *MongoDB (NoSQL):* Good for storing arbitrary JSON, but less ideal for strict user schema and relational querying.
+  - *SQLite:* Used in our pytest environment for speed, but lacks the concurrency handling required for a production API.
+
+**Why Textract instead of traditional OCR (like Tesseract)?**
+- Traditional open-source OCR engines (like Tesseract) simply extract raw text strings from an image. We would then have to write complex, error-prone Regex or NLP parsers to figure out which string is the "Name" vs the "Document Number". AWS Textract's `AnalyzeID` API uses machine learning specifically trained on ID documents to automatically return structured Key-Value pairs with confidence scores, eliminating the need for custom parsing logic.
+- **Alternatives**
+  - *Tesseract OCR:* Free and open-source, but requires heavy image pre-processing (OpenCV) and custom data parsing.
+  - *Google Cloud Vision API / Azure AI Document Intelligence:* Comparable managed cloud AI services, but AWS Textract integrates seamlessly with our existing AWS S3 infrastructure.
 
 ## Installation
 
