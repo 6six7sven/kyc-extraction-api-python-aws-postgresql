@@ -54,7 +54,7 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
 ![Kyc-API DFD](images/kyc-dfd.jpg)
 
 ## Live Demo
-![GIF](https://github.com/6six7sven/kyc-extraction-api-python-aws-postgresql/blob/terraform/images/api-showcase.gif?raw=true)
+![GIF](https://github.com/6six7sven/kyc-extraction-api-python-aws-postgresql/blob/master/images/api-showcase.gif?raw=true)
 
 ## Screenshots
   
