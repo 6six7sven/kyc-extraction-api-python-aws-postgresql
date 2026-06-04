@@ -5,11 +5,14 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
 ## Features
 
 - **JWT Authentication**: Secure endpoint access with token-based authentication
+- **High Throughput**: Capable of handling massive concurrent read-requests via FastAPI
+- **Low Latency**: Reduced API response latency by offloading document analysis to background workers.
 - **Async Processing**: Celery task queue for background document analysis
 - **AWS Textract Integration**: Automatic extraction of ID field data (name, DOB, document number, etc.)
 - **S3 Storage**: Secure file upload and storage with presigned URLs
 - **PostgreSQL Persistence**: Track KYC task status and results
 - **Image Validation**: Support for JPEG, PNG, and WebP formats
+- **Infrastructure as Code**: Automated AWS provisioning (RDS, EC2, S3) using Terraform
 - **Structured Logging**: Comprehensive logging for debugging and monitoring
 
 ## Tech Stack
@@ -20,6 +23,7 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
 - **Cloud Services**: AWS Textract, S3
 - **Authentication**: PyJWT
 - **Server**: Uvicorn
+- **Infrastructure**: Terraform, Docker
 
 ## Project Structure
 
@@ -36,17 +40,37 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
 ├── db/
 │   ├── database.py           # Database connection setup
 │   └── models.py             # SQLAlchemy models
+├── terraform/                # Terraform IaC configuration
+│   └── main.tf               # AWS infrastructure definitions
 └── uploads/                   # Local upload directory (for development)
 ```
 ## Architecture Overview
 - **Architecture Diagram**
 
-![Kyc-API Architecture](arch-images/kyc-arch.png)
+![Kyc-API Architecture](images/kyc-arch.png)
 
 - **Data Flow Diagram**
 
-![Kyc-API DFD](arch-images/kyc-dfd.jpg)
+![Kyc-API DFD](images/kyc-dfd.jpg)
 
+## Live Demo
+![GIF](https://github.com/6six7sven/kyc-extraction-api-python-aws-postgresql/blob/terraform/images/api-showcase.gif?raw=true)
+
+## Screenshots
+  
+  ### Swagger/OpenAPI Documentation
+  ![swagger-openapi-doc](images/swagger-openapi-doc.jpg)
+
+  ### Completed Task Status Example
+  ![task-status-example](images/task-status-example.jpg)
+
+  ### PostgreSQL Schema
+  ![postgresql-schema](images/schema-diagram.jpg)
+
+  ### Github Actions Workflow
+  ![github-actions-workflow](images/gh-action-workflow.jpg)
+
+</details>
 
 ## Engineering Decisions
 
