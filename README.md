@@ -65,10 +65,10 @@ A FastAPI-based KYC (Know Your Customer) system that automatically extracts stru
   ![task-status-example](images/task-status-example.jpg)
 
   ### PostgreSQL Schema
-  ![postgresql-schema](images\schema-diagram.jpg)
+  ![postgresql-schema](images/schema-diagram.jpg)
 
   ### Github Actions Workflow
-  ![github-actions-workflow](images\gh-action-workflow.jpg)
+  ![github-actions-workflow](images/gh-action-workflow.jpg)
 
 </details>
 
